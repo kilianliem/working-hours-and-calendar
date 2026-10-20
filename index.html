@@ -1,0 +1,2497 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flexible Working Hours Calculator</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .font-mono-time {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+        }
+
+        .dark .card {
+            background: #1e293b;
+            border-color: #334155;
+        }
+
+        .field {
+            width: 100%;
+            min-width: 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.75rem;
+            background: #f8fafc;
+            color: #1e293b;
+            padding: 0.65rem 0.85rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .dark .field {
+            background: #334155;
+            border-color: #475569;
+            color: #f1f5f9;
+            color-scheme: dark;
+        }
+
+        .field:focus {
+            outline: 2px solid #22c55e;
+            outline-offset: 1px;
+        }
+
+        .field:disabled {
+            opacity: 0.65;
+        }
+
+        .label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #64748b;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .dark .label {
+            color: #94a3b8;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.75rem;
+            background: white;
+            color: #334155;
+            padding: 0.6rem 0.9rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: background 150ms, transform 150ms;
+        }
+
+        .btn:hover {
+            background: #f1f5f9;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .dark .btn {
+            background: #334155;
+            border-color: #475569;
+            color: #e2e8f0;
+        }
+
+        .dark .btn:hover {
+            background: #475569;
+        }
+
+        .btn-primary,
+        .dark .btn-primary {
+            background: #16a34a;
+            border-color: #16a34a;
+            color: white;
+        }
+
+        .btn-primary:hover,
+        .dark .btn-primary:hover {
+            background: #15803d;
+        }
+
+        .btn-amber,
+        .dark .btn-amber {
+            background: #d97706;
+            border-color: #d97706;
+            color: white;
+        }
+
+        .btn-amber:hover,
+        .dark .btn-amber:hover {
+            background: #b45309;
+        }
+
+        .drag-over {
+            outline: 2px dashed #9333ea !important;
+            background-color: #f3e8ff !important;
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .dark .drag-over {
+            background-color: #3b0764 !important;
+            outline-color: #c084fc !important;
+        }
+
+        .import-drag-over {
+            outline: 3px dashed #d97706;
+            outline-offset: 4px;
+            background-color: #fef3c7 !important;
+        }
+
+        .dark .import-drag-over {
+            background-color: #451a03 !important;
+        }
+
+        .draggable-chip {
+            cursor: grab;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .draggable-chip:active {
+            cursor: grabbing;
+        }
+
+        input[type="time"] {
+            min-width: 0;
+        }
+
+        button:focus-visible,
+        label:focus-within {
+            outline: 2px solid #22c55e;
+            outline-offset: 3px;
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full flex flex-col selection:bg-brand-500 selection:text-white transition-colors duration-200">
+
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-20 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-brand-600 text-white p-2.5 rounded-xl shadow-md">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">FlexiTime Calc</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Clock-Out Calculator & Leave Simulator</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div id="live-clock" class="text-sm font-mono-time font-semibold bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-600">
+                    --:--:--
+                </div>
+                <button onclick="toggleDarkMode()" class="btn p-2" title="Toggle Dark/Light Mode" aria-label="Toggle Dark/Light Mode">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <nav class="max-w-6xl mx-auto px-4 flex flex-wrap gap-2 border-t border-slate-200 dark:border-slate-700 py-2" aria-label="Calculator tabs">
+            <button onclick="switchTab('flexi')" id="tab-flexi" class="px-4 py-2 text-sm font-semibold rounded-xl bg-brand-600 text-white transition">
+                FlexiTime Calculator
+            </button>
+            <button onclick="switchTab('holiday')" id="tab-holiday" class="px-4 py-2 text-sm font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                Bank Holiday & Leave Simulator
+            </button>
+        </nav>
+    </header>
+
+    <main class="max-w-6xl w-full mx-auto px-4 py-8 flex-grow">
+        <div id="storage-notice" class="hidden mb-6 rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-4 text-xs text-amber-800 dark:text-amber-200">
+            Persistent browser storage is unavailable. Changes will last only while this page remains open.
+        </div>
+
+        <div id="toast" class="hidden mb-6 p-4 rounded-xl border flex items-start justify-between gap-3 shadow-sm" role="status" aria-live="polite">
+            <div class="flex items-start gap-3">
+                <span id="toast-icon" class="font-bold"></span>
+                <p id="toast-message" class="text-sm font-medium break-words"></p>
+            </div>
+            <button onclick="hideToast()" class="text-xl leading-none opacity-60 hover:opacity-100" aria-label="Dismiss notification">&times;</button>
+        </div>
+
+        <!-- TAB 1 -->
+        <div id="view-flexi" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="md:col-span-2 space-y-6">
+                    <section class="card">
+                        <h2 class="text-base font-semibold mb-4">Schedule & Target Hours</h2>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="day-type" class="label">Day Template</label>
+                                <select id="day-type" onchange="handleDayTypeChange()" class="field">
+                                    <option value="mon-thu">Monday to Thursday (7h 15m)</option>
+                                    <option value="fri">Friday (7h 00m)</option>
+                                    <option value="custom">Custom Hours</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <span class="label">Target Hours Required</span>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <input type="number" id="target-h" min="0" max="24" value="7" oninput="calculate()" class="field" aria-label="Target hours">
+                                        <span class="text-xs text-slate-400">Hours</span>
+                                    </div>
+                                    <div>
+                                        <input type="number" id="target-m" min="0" max="59" value="15" oninput="calculate()" class="field" aria-label="Target minutes">
+                                        <span class="text-xs text-slate-400">Minutes</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card space-y-6">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <h2 class="text-base font-semibold">Time Logs</h2>
+                            <button onclick="setNowAll()" class="text-xs text-brand-600 dark:text-brand-400 font-semibold">
+                                Fill Current Time
+                            </button>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 space-y-4">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                                    Morning Shift
+                                </span>
+                                <button onclick="setNow('morning-in')" class="text-xs text-slate-500 dark:text-slate-400">Set In to Now</button>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="morning-in" class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Clock In</label>
+                                    <div class="flex gap-2">
+                                        <input type="time" id="morning-in" oninput="calculate()" class="field">
+                                        <button onclick="clearField('morning-in')" class="btn text-xs px-2">Clear</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="morning-out" class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Clock Out (Lunch Start)</label>
+                                    <div class="flex gap-2">
+                                        <input type="time" id="morning-out" oninput="calculate()" class="field">
+                                        <button onclick="clearField('morning-out')" class="btn text-xs px-2">Clear</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 space-y-4">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
+                                    Afternoon Shift
+                                </span>
+                                <button onclick="setNow('afternoon-in')" class="text-xs text-slate-500 dark:text-slate-400">Set In to Now</button>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label for="afternoon-in" class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Clock In (Lunch Return)</label>
+                                    <div class="flex gap-2">
+                                        <input type="time" id="afternoon-in" oninput="calculate()" class="field">
+                                        <button onclick="clearField('afternoon-in')" class="btn text-xs px-2">Clear</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Afternoon Clock Out (Target)</span>
+                                    <div class="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl px-3 py-2.5 text-sm font-bold text-indigo-700 dark:text-indigo-300 flex flex-wrap items-center justify-between gap-2">
+                                        <span id="display-target-out">--:--</span>
+                                        <span class="text-xs font-normal">Auto Calculated</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <button onclick="resetForm()" class="btn">Reset Form</button>
+                            <button onclick="saveToHistory()" class="btn btn-primary">Save Entry</button>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="space-y-6">
+                    <section class="bg-gradient-to-br from-brand-600 to-emerald-700 rounded-2xl p-6 text-white shadow-lg">
+                        <span class="text-xs uppercase tracking-widest text-emerald-100 font-semibold">Suggested Clock Out</span>
+                        <div id="big-clock-out" class="text-4xl font-black font-mono-time tracking-tight mt-2 mb-4">--:--</div>
+
+                        <div class="space-y-2 border-t border-emerald-500/40 pt-4 text-xs text-emerald-100">
+                            <div class="flex justify-between gap-3">
+                                <span>Morning Worked:</span>
+                                <span id="stat-morning-worked" class="font-semibold text-white">0h 0m</span>
+                            </div>
+                            <div class="flex justify-between gap-3">
+                                <span>Remaining Required:</span>
+                                <span id="stat-remaining" class="font-semibold text-white">7h 15m</span>
+                            </div>
+                            <div class="flex justify-between gap-3">
+                                <span>Status:</span>
+                                <span id="stat-status" class="font-semibold text-emerald-100 text-right">Waiting for input</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card space-y-4">
+                        <h3 class="text-sm font-bold uppercase tracking-wider">Progress Overview</h3>
+                        <div>
+                            <div class="flex justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
+                                <span>Hours Completed</span>
+                                <span id="progress-text" class="font-semibold">0.00 / 7.25 hrs</span>
+                            </div>
+                            <div class="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                                <div id="progress-bar" class="bg-brand-500 h-full rounded-full transition-all duration-300" style="width:0%"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl text-center">
+                                <span class="text-xs text-slate-500 dark:text-slate-400 block">Total Break</span>
+                                <span id="stat-break-duration" class="text-sm font-bold font-mono-time">0m</span>
+                            </div>
+                            <div class="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl text-center">
+                                <span class="text-xs text-slate-500 dark:text-slate-400 block">Estimated Overtime</span>
+                                <span id="stat-overtime" class="text-sm font-bold font-mono-time">0m</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <h3 class="text-sm font-bold uppercase tracking-wider">Weekly Accumulator</h3>
+                            <span id="weekly-total" class="text-xs font-mono-time font-bold bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 px-2.5 py-1 rounded-lg whitespace-nowrap">0h 0m</span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Total accumulated hours from your saved entries.</p>
+                    </section>
+
+                    <section class="card space-y-4">
+                        <div class="flex items-center justify-between gap-3">
+                            <h3 class="text-sm font-bold uppercase tracking-wider">Recent Logs</h3>
+                            <div class="flex gap-2 text-xs font-medium">
+                                <button onclick="exportData()" class="text-brand-600 dark:text-brand-400">Export</button>
+                                <span class="text-slate-300">|</span>
+                                <button onclick="clearHistory()" class="text-rose-500">Clear</button>
+                            </div>
+                        </div>
+                        <div id="history-container" class="space-y-2.5 max-h-60 overflow-y-auto"></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2 -->
+        <div id="view-holiday" class="hidden space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <section class="card space-y-4">
+                    <h2 class="text-base font-semibold">Bank Holiday Entry</h2>
+
+                    <div>
+                        <label for="holiday-name" class="label">Holiday Name / Description</label>
+                        <input type="text" id="holiday-name" placeholder="e.g. Christmas Day, Easter Monday" class="field">
+                    </div>
+
+                    <div>
+                        <label for="holiday-date" class="label">Bank Holiday Worked Date</label>
+                        <input type="date" id="holiday-date" onchange="calculateHolidayExpiry()" class="field">
+                    </div>
+
+                    <div>
+                        <label for="holiday-days" class="label">Expiry Period (Days)</label>
+                        <input type="number" id="holiday-days" value="180" min="1" max="1000" oninput="calculateHolidayExpiry()" class="field">
+                    </div>
+
+                    <div>
+                        <span class="label">Quick Presets</span>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="setHolidayPreset(90)" class="btn text-xs px-2">+90 Days</button>
+                            <button onclick="setHolidayPreset(180)" class="btn text-xs px-2">+180 Days</button>
+                            <button onclick="setHolidayPreset(365)" class="btn text-xs px-2">+365 Days</button>
+                        </div>
+                    </div>
+
+                    <button onclick="saveHoliday()" class="btn btn-primary w-full">Save Bank Holiday</button>
+                </section>
+
+                <div class="md:col-span-2 space-y-6">
+                    <section class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-lg">
+                        <span class="text-xs uppercase tracking-widest text-slate-400 font-semibold">Calculated Expiration Date</span>
+                        <div id="preview-expiry-date" class="text-2xl sm:text-3xl font-black tracking-tight mt-1 mb-3">--</div>
+                        <div class="flex flex-wrap items-center justify-between gap-4 border-t border-slate-700 pt-4 text-xs">
+                            <div>
+                                <span class="text-slate-400 block uppercase">Time Remaining</span>
+                                <span id="preview-days-left" class="text-sm font-bold text-brand-400">-- days left</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block uppercase mb-1">Status</span>
+                                <span id="preview-status-badge" class="px-2.5 py-1 rounded-full font-semibold bg-slate-700 text-slate-300">Awaiting Input</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card space-y-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <h3 class="text-sm font-bold uppercase tracking-wider">Saved Bank Holidays (Earned In-Lieu)</h3>
+                                <p class="text-xs text-slate-400 mt-1">Drag an item onto a calendar date below to use it.</p>
+                            </div>
+                            <button onclick="clearHolidayHistory()" class="text-xs text-rose-500 font-medium whitespace-nowrap">Clear All</button>
+                        </div>
+                        <div id="holiday-history-container" class="space-y-3 max-h-56 overflow-y-auto"></div>
+                    </section>
+                </div>
+            </div>
+
+            <section class="card space-y-6">
+
+                <!-- CSV / ICAL / ICS IMPORT -->
+                <div
+                    id="gov-import-zone"
+                    class="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 sm:p-5 space-y-4"
+                    ondragenter="handleImportDragOver(event)"
+                    ondragover="handleImportDragOver(event)"
+                    ondragleave="handleImportDragLeave(event)"
+                    ondrop="handleHolidayFileDrop(event)"
+                >
+                    <div class="space-y-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                                Gov Public Holidays Dynamic Reader
+                            </h3>
+                            <span id="gov-sync-badge" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-200 dark:bg-amber-900 text-amber-800 dark:text-amber-200">
+                                Ready for .csv / .ical / .ics
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Upload or drop a <strong>.csv</strong>, <strong>.ical</strong>, or <strong>.ics</strong> file.
+                            You can also paste a direct link or raw file content below.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <label class="btn cursor-pointer border-amber-300 dark:border-amber-700">
+                            <svg class="w-4 h-4 text-amber-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                            </svg>
+                            <span id="csv-file-label" class="break-all">Choose .csv / .ical / .ics File</span>
+                            <input
+                                type="file"
+                                id="gov-csv-file"
+                                accept=".csv,.ical,.ics,text/csv,text/calendar,application/ics"
+                                onchange="handleCsvFileUpload(event)"
+                                class="sr-only"
+                            >
+                        </label>
+
+                        <button id="btn-sync-gov" onclick="handleCsvUrlOrPaste()" class="btn btn-amber sm:ml-auto">
+                            Read Holiday Data
+                        </button>
+                    </div>
+
+                    <textarea
+                        id="gov-csv-url"
+                        rows="3"
+                        spellcheck="false"
+                        placeholder="Paste a .csv / .ical / .ics URL, or paste raw CSV / iCalendar content..."
+                        aria-label="Holiday file URL or raw content"
+                        class="field resize-y"
+                    ></textarea>
+
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        iCalendar imports use event dates as written, without timezone conversion.
+                        Recurrence rules are not expanded. Direct links must allow browser access (CORS).
+                    </p>
+
+                    <p id="gov-import-details" class="hidden text-xs text-amber-800 dark:text-amber-300 whitespace-pre-line" role="status"></p>
+                </div>
+
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-700">
+                    <div>
+                        <h2 class="text-lg font-bold">Annual Leave Hour Simulator</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Click dates or drag bank holidays directly onto the calendar.</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="flex flex-wrap items-center bg-slate-100 dark:bg-slate-700/60 p-1 rounded-xl text-xs font-semibold gap-1">
+                            <span class="px-2 text-slate-500 dark:text-slate-400 uppercase">Mode:</span>
+                            <button id="btn-mode-annual" onclick="setCalendarMarkMode('annual')" class="px-3 py-1.5 rounded-lg bg-brand-600 text-white">Annual Leave</button>
+                            <button id="btn-mode-holiday" onclick="setCalendarMarkMode('holiday')" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300">Bank Holiday</button>
+                            <div
+                                draggable="true"
+                                ondragstart="handleTokenDragStart(event)"
+                                class="draggable-chip px-3 py-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700"
+                                title="Drag onto a calendar day"
+                            >⋮⋮ Drag to Day</div>
+                        </div>
+
+                        <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/60 p-1 rounded-xl">
+                            <button onclick="navigateYear(-1)" class="btn py-1 px-2" aria-label="Previous year">‹</button>
+                            <input type="number" id="calendar-year-input" min="1900" max="9999" value="2027" onchange="onYearInputChanged()" class="w-20 bg-transparent text-sm font-bold text-center focus:outline-none" aria-label="Calendar year">
+                            <button onclick="navigateYear(1)" class="btn py-1 px-2" aria-label="Next year">›</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <label for="input-total-leaves" class="label mb-0">1. Total Annual Leaves</label>
+                            <span id="badge-total-holidays" class="text-xs font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">+0 Bank Holidays</span>
+                        </div>
+                        <input type="number" id="input-total-leaves" min="0" step="0.5" value="26" oninput="onManualInputChanged()" class="field text-xl font-black">
+                        <p class="text-xs text-slate-400">Annual entitlement in days for <span class="year-label font-semibold">2027</span></p>
+                    </div>
+
+                    <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <label for="input-used-leaves" class="label mb-0">2. Days Used</label>
+                            <span id="badge-used-holidays" class="text-xs font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">0 Bank Holidays Used</span>
+                        </div>
+                        <input type="number" id="input-used-leaves" min="0" step="0.5" value="0" oninput="onManualInputChanged()" class="field text-xl font-black">
+                        <div class="flex items-center justify-between gap-2 text-xs">
+                            <span class="text-slate-400">Type or click/drag onto calendar</span>
+                            <button onclick="clearSelectedDaysOfYear()" class="text-rose-500 font-semibold whitespace-nowrap">Reset Year</button>
+                        </div>
+                    </div>
+
+                    <div id="card-remaining-box" class="p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs font-bold uppercase tracking-wider">3. Remaining Leaves</span>
+                            <span id="badge-remaining-holidays" class="text-xs font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">0 Bank Holidays Left</span>
+                        </div>
+                        <div class="flex flex-wrap items-baseline gap-2 py-1">
+                            <span id="display-remaining-leaves" class="text-3xl font-black font-mono-time text-emerald-700 dark:text-emerald-300">26</span>
+                            <span class="text-sm font-semibold uppercase">Annual Days</span>
+                        </div>
+                        <p id="display-remaining-status" class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Balance in good standing</p>
+                    </div>
+                </div>
+
+                <div class="pt-4 space-y-4">
+                    <div class="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+                        <span class="font-bold uppercase tracking-wider">Calendar (<span class="year-label">2027</span>):</span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded bg-brand-600"></span>
+                            Used Annual Leave (-1 AL)
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded bg-purple-600"></span>
+                            Used Bank Holiday (-1 BH, 0 AL)
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded bg-amber-100 border border-amber-400"></span>
+                            Gov Public Holiday
+                        </span>
+                    </div>
+
+                    <div id="calendar-12-months-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-2"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 mt-12 py-4 px-4 text-center text-xs text-slate-500 dark:text-slate-400">
+        Flexible Working Hours Calculator &bull; Designed for optimal schedule management
+    </footer>
+
+    <!-- Sandbox-compatible confirmation dialog -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-black/50 p-4 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <div class="card w-full max-w-md space-y-4">
+            <h2 id="confirm-title" class="font-bold text-lg">Confirm Reset</h2>
+            <p id="confirm-message" class="text-sm text-slate-600 dark:text-slate-300"></p>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeConfirm(false)" class="btn">Cancel</button>
+                <button id="confirm-accept" onclick="closeConfirm(true)" class="btn btn-primary">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+
+        // -------------------------------------------------------------
+        // STORAGE: LOCAL STORAGE WITH AN IN-MEMORY FALLBACK
+        // -------------------------------------------------------------
+        const storage = (() => {
+            const memory = new Map();
+            let persistent = true;
+
+            try {
+                const key = '__flexitime_storage_test__';
+                window.localStorage.setItem(key, '1');
+                window.localStorage.removeItem(key);
+            } catch {
+                persistent = false;
+            }
+
+            function warn() {
+                const notice = document.getElementById('storage-notice');
+                if (notice) notice.classList.remove('hidden');
+            }
+
+            return {
+                get persistent() {
+                    return persistent;
+                },
+
+                getItem(key) {
+                    if (memory.has(key)) return memory.get(key);
+                    if (!persistent) return null;
+
+                    try {
+                        return window.localStorage.getItem(key);
+                    } catch {
+                        persistent = false;
+                        warn();
+                        return null;
+                    }
+                },
+
+                setItem(key, value) {
+                    const text = String(value);
+                    memory.set(key, text);
+
+                    if (persistent) {
+                        try {
+                            window.localStorage.setItem(key, text);
+                        } catch {
+                            persistent = false;
+                            warn();
+                        }
+                    }
+                },
+
+                removeItem(key) {
+                    memory.set(key, null);
+
+                    if (persistent) {
+                        try {
+                            window.localStorage.removeItem(key);
+                        } catch {
+                            persistent = false;
+                            warn();
+                        }
+                    }
+                }
+            };
+        })();
+
+        function readJSON(key, fallback) {
+            try {
+                const raw = storage.getItem(key);
+                return raw === null ? fallback : JSON.parse(raw);
+            } catch {
+                return fallback;
+            }
+        }
+
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[char]);
+        }
+
+        function localDateISO(date = new Date()) {
+            return [
+                String(date.getFullYear()).padStart(4, '0'),
+                String(date.getMonth() + 1).padStart(2, '0'),
+                String(date.getDate()).padStart(2, '0')
+            ].join('-');
+        }
+
+        function utcDateISO(date) {
+            return [
+                String(date.getUTCFullYear()).padStart(4, '0'),
+                String(date.getUTCMonth() + 1).padStart(2, '0'),
+                String(date.getUTCDate()).padStart(2, '0')
+            ].join('-');
+        }
+
+        function calendarDayNumber(dateISO) {
+            return Date.parse(dateISO + 'T00:00:00Z') / 86400000;
+        }
+
+        function formatMinutes(minutes) {
+            const safe = Math.max(0, Math.round(Number(minutes) || 0));
+            return `${Math.floor(safe / 60)}h ${safe % 60}m`;
+        }
+
+        // -------------------------------------------------------------
+        // CSV PARSER
+        // -------------------------------------------------------------
+        class GovHolidayCsvParser {
+            static splitRows(text, delimiter) {
+                const rows = [];
+                let row = [];
+                let value = '';
+                let quoted = false;
+
+                const pushRow = () => {
+                    row.push(value.trim());
+                    if (row.some(cell => cell !== '')) rows.push(row);
+                    row = [];
+                    value = '';
+                };
+
+                for (let i = 0; i < text.length; i++) {
+                    const char = text[i];
+
+                    if (char === '"') {
+                        if (quoted && text[i + 1] === '"') {
+                            value += '"';
+                            i++;
+                        } else if (quoted) {
+                            quoted = false;
+                        } else if (value.trim() === '') {
+                            quoted = true;
+                        } else {
+                            value += char;
+                        }
+                    } else if (char === delimiter && !quoted) {
+                        row.push(value.trim());
+                        value = '';
+                    } else if ((char === '\n' || char === '\r') && !quoted) {
+                        if (char === '\r' && text[i + 1] === '\n') i++;
+                        pushRow();
+                    } else {
+                        value += char;
+                    }
+                }
+
+                if (quoted) throw new Error('The CSV contains an unclosed quoted field.');
+                if (value.length || row.length) pushRow();
+
+                return rows;
+            }
+
+            static parse(csvText) {
+                const text = String(csvText).replace(/^\uFEFF/, '');
+                if (!text.trim()) return {};
+
+                const firstLine = text.split(/\r\n|\n|\r/, 1)[0];
+                const delimiters = [',', ';', '\t'];
+
+                const delimiter = delimiters
+                    .map(item => ({
+                        value: item,
+                        count: this.splitRows(firstLine, item)[0]?.length || 0
+                    }))
+                    .sort((a, b) => b.count - a.count)[0].value;
+
+                const rows = this.splitRows(text, delimiter);
+                if (!rows.length) return {};
+
+                const header = rows[0].map(value => value.toLowerCase().trim());
+
+                let dateIdx = header.findIndex(value => /date|日期|time/.test(value));
+                if (dateIdx < 0) {
+                    dateIdx = header.findIndex(value => /(^|\s)day($|\s)/.test(value));
+                }
+
+                let nameIdx = header.findIndex(value =>
+                    /holiday|name|title|summary|description|名稱|假|項/.test(value)
+                );
+
+                const firstRowHasDate = rows[0].some(value => this.normalizeDate(value));
+
+                if (firstRowHasDate) {
+                    dateIdx = rows[0].findIndex(value => this.normalizeDate(value));
+                    nameIdx = rows[0].findIndex((value, index) => index !== dateIdx);
+                } else {
+                    if (dateIdx < 0) dateIdx = 0;
+                    if (nameIdx < 0 || nameIdx === dateIdx) {
+                        nameIdx = dateIdx === 0 ? 1 : 0;
+                    }
+                }
+
+                const holidays = {};
+                const startIndex = firstRowHasDate ? 0 : 1;
+
+                for (let i = startIndex; i < rows.length; i++) {
+                    const row = rows[i];
+                    const parsed = this.normalizeDate(row[dateIdx] || '');
+                    if (!parsed) continue;
+
+                    const name = row[nameIdx]?.trim() || 'Public Holiday';
+                    addHoliday(holidays, parsed.dateISO, name);
+                }
+
+                return holidays;
+            }
+
+            static normalizeDate(dateStr) {
+                const value = String(dateStr).trim();
+                let match;
+                let year;
+                let month;
+                let day;
+
+                if ((match = value.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:$|[T\s])/))) {
+                    [, year, month, day] = match;
+                } else if ((match = value.match(/^(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日$/))) {
+                    [, year, month, day] = match;
+                } else if ((match = value.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/))) {
+                    // Ambiguous numeric dates are interpreted as DD/MM/YYYY.
+                    [, day, month, year] = match;
+                } else if ((match = value.match(/^(\d{4})(\d{2})(\d{2})$/))) {
+                    [, year, month, day] = match;
+                } else {
+                    return null;
+                }
+
+                year = Number(year);
+                month = Number(month);
+                day = Number(day);
+
+                if (year < 1900 || year > 9999 || month < 1 || month > 12 || day < 1) {
+                    return null;
+                }
+
+                const date = new Date(Date.UTC(year, month - 1, day));
+
+                if (
+                    date.getUTCFullYear() !== year ||
+                    date.getUTCMonth() !== month - 1 ||
+                    date.getUTCDate() !== day
+                ) {
+                    return null;
+                }
+
+                return {
+                    year: String(year),
+                    dateISO: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                };
+            }
+        }
+
+        function addHoliday(store, dateISO, name) {
+            const year = dateISO.slice(0, 4);
+
+            if (!store[year]) store[year] = {};
+            if (!store[year][dateISO]) store[year][dateISO] = [];
+
+            if (!store[year][dateISO].includes(name)) {
+                store[year][dateISO].push(name);
+            }
+        }
+
+        // -------------------------------------------------------------
+        // ICALENDAR PARSER: .ICAL / .ICS
+        //
+        // - Reads VEVENT DTSTART and SUMMARY.
+        // - Unfolds continuation lines.
+        // - Decodes escaped TEXT values.
+        // - Ignores nested components such as VALARM.
+        // - Skips cancelled events.
+        // - Expands all-day DTEND / day-or-week DURATION ranges.
+        // - Keeps date-time events on their written DTSTART date.
+        // - Does not expand recurrence rules.
+        // -------------------------------------------------------------
+        class GovHolidayIcalParser {
+            static unfold(text) {
+                return String(text)
+                    .replace(/^\uFEFF/, '')
+                    .replace(/\r\n/g, '\n')
+                    .replace(/\r/g, '\n')
+                    .replace(/\n[ \t]/g, '');
+            }
+
+            static decodeText(value) {
+                return String(value).replace(/\\([nN,;\\])/g, (_, char) => {
+                    if (char === 'n' || char === 'N') return '\n';
+                    return char;
+                });
+            }
+
+            static parseProperty(line) {
+                let quoted = false;
+                let separator = -1;
+
+                for (let i = 0; i < line.length; i++) {
+                    if (line[i] === '"') quoted = !quoted;
+                    if (line[i] === ':' && !quoted) {
+                        separator = i;
+                        break;
+                    }
+                }
+
+                if (separator < 0) return null;
+
+                const left = line.slice(0, separator);
+                const nameEnd = left.indexOf(';');
+                const name = (nameEnd < 0 ? left : left.slice(0, nameEnd)).toUpperCase();
+
+                return {
+                    name,
+                    parameters: nameEnd < 0 ? '' : left.slice(nameEnd + 1),
+                    value: line.slice(separator + 1)
+                };
+            }
+
+            static parseDate(property) {
+                if (!property) return null;
+
+                const value = property.value.trim();
+                const match = value.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$/i);
+                if (!match) return null;
+
+                const normalized = GovHolidayCsvParser.normalizeDate(
+                    `${match[1]}-${match[2]}-${match[3]}`
+                );
+                if (!normalized) return null;
+
+                const isDateOnly = match[4] === undefined;
+                const valueType = property.parameters.match(/(?:^|;)VALUE=([^;]+)/i)?.[1]
+                    ?.replace(/^"|"$/g, '')
+                    .toUpperCase();
+
+                if (valueType === 'DATE' && !isDateOnly) return null;
+                if (valueType === 'DATE-TIME' && isDateOnly) return null;
+
+                if (!isDateOnly) {
+                    const hour = Number(match[4]);
+                    const minute = Number(match[5]);
+                    const second = Number(match[6]);
+
+                    if (hour > 23 || minute > 59 || second > 60) return null;
+                }
+
+                return {
+                    dateISO: normalized.dateISO,
+                    isDateOnly
+                };
+            }
+
+            static parse(icalText) {
+                const unfolded = this.unfold(icalText);
+
+                if (!/(?:^|\n)BEGIN:VCALENDAR[ \t]*(?:\n|$)/i.test(unfolded)) {
+                    throw new Error('This does not appear to be a valid iCalendar file: BEGIN:VCALENDAR is missing.');
+                }
+
+                const holidays = {};
+                const warnings = new Set();
+                const stack = [];
+
+                let event = null;
+                let eventsFound = 0;
+                let invalidEvents = 0;
+                let cancelledEvents = 0;
+
+                const processEvent = properties => {
+                    eventsFound++;
+
+                    const first = name => properties.find(property => property.name === name);
+
+                    if (first('STATUS')?.value.trim().toUpperCase() === 'CANCELLED') {
+                        cancelledEvents++;
+                        return;
+                    }
+
+                    const start = this.parseDate(first('DTSTART'));
+                    if (!start) {
+                        invalidEvents++;
+                        return;
+                    }
+
+                    if (properties.some(property =>
+                        ['RRULE', 'RDATE', 'EXDATE', 'EXRULE', 'RECURRENCE-ID'].includes(property.name)
+                    )) {
+                        warnings.add(
+                            'Recurring calendar data detected. Only explicit DTSTART dates are imported; recurrence rules, added/excluded occurrences, and recurrence overrides are not resolved.'
+                        );
+                    }
+
+                    const summary = first('SUMMARY');
+                    const name = summary
+                        ? this.decodeText(summary.value).trim() || 'Public Holiday'
+                        : 'Public Holiday';
+
+                    // Timed events are shown on their written start date.
+                    if (!start.isDateOnly) {
+                        addHoliday(holidays, start.dateISO, name);
+
+                        if (first('DTEND') || first('DURATION')) {
+                            warnings.add(
+                                'Timed events are marked on their DTSTART date only. Only all-day events are expanded across multiple dates.'
+                            );
+                        }
+                        return;
+                    }
+
+                    let numberOfDays = 1;
+                    const endProperty = first('DTEND');
+                    const durationProperty = first('DURATION');
+
+                    if (endProperty) {
+                        const end = this.parseDate(endProperty);
+
+                        if (!end || !end.isDateOnly) {
+                            warnings.add('Some events had invalid all-day end dates; only their start dates were imported.');
+                        } else {
+                            // DTEND is exclusive.
+                            const difference = calendarDayNumber(end.dateISO) -
+                                calendarDayNumber(start.dateISO);
+
+                            if (difference <= 0) {
+                                warnings.add('Some events had end dates on or before their start dates; only their start dates were imported.');
+                            } else {
+                                numberOfDays = difference;
+                            }
+                        }
+                    } else if (durationProperty) {
+                        const duration = durationProperty.value.trim().match(/^P(?:(\d+)W|(\d+)D)$/i);
+
+                        if (duration) {
+                            const days = duration[1] !== undefined
+                                ? Number(duration[1]) * 7
+                                : Number(duration[2]);
+
+                            if (Number.isSafeInteger(days) && days > 0) {
+                                numberOfDays = days;
+                            } else {
+                                warnings.add('Some events had invalid durations; only their start dates were imported.');
+                            }
+                        } else {
+                            warnings.add('Some all-day durations were unsupported; only their start dates were imported.');
+                        }
+                    }
+
+                    // Protect the browser from accidentally enormous date ranges.
+                    if (numberOfDays > 3660) {
+                        warnings.add('An event longer than 3,660 days was limited to its start date.');
+                        numberOfDays = 1;
+                    }
+
+                    const startTime = Date.parse(start.dateISO + 'T00:00:00Z');
+
+                    for (let offset = 0; offset < numberOfDays; offset++) {
+                        const date = new Date(startTime + offset * 86400000);
+
+                        if (date.getUTCFullYear() > 9999) {
+                            warnings.add('Dates after year 9999 were skipped.');
+                            break;
+                        }
+
+                        addHoliday(holidays, utcDateISO(date), name);
+                    }
+                };
+
+                for (const rawLine of unfolded.split('\n')) {
+                    const line = rawLine.trimEnd();
+                    if (!line) continue;
+
+                    const property = this.parseProperty(line);
+                    if (!property) continue;
+
+                    if (property.name === 'BEGIN') {
+                        const component = property.value.trim().toUpperCase();
+                        stack.push(component);
+
+                        if (component === 'VEVENT') {
+                            if (event) throw new Error('Nested VEVENT components are not supported.');
+                            event = [];
+                        }
+
+                        continue;
+                    }
+
+                    if (property.name === 'END') {
+                        const component = property.value.trim().toUpperCase();
+
+                        if (stack[stack.length - 1] !== component) {
+                            throw new Error('The iCalendar file contains mismatched BEGIN/END components.');
+                        }
+
+                        if (component === 'VEVENT' && event) {
+                            processEvent(event);
+                            event = null;
+                        }
+
+                        stack.pop();
+                        continue;
+                    }
+
+                    // Do not import SUMMARY or dates from nested VALARM blocks.
+                    if (event && stack[stack.length - 1] === 'VEVENT') {
+                        event.push(property);
+                    }
+                }
+
+                if (stack.length || event) {
+                    throw new Error('The iCalendar file appears incomplete: an END component is missing.');
+                }
+
+                if (!eventsFound) {
+                    throw new Error('No VEVENT entries were found in this iCalendar file.');
+                }
+
+                if (invalidEvents) {
+                    warnings.add(`${invalidEvents} event(s) with missing, invalid, or out-of-range start dates were skipped.`);
+                }
+
+                if (cancelledEvents) {
+                    warnings.add(`${cancelledEvents} cancelled event(s) were skipped.`);
+                }
+
+                return {
+                    holidays,
+                    warnings: [...warnings],
+                    eventsFound
+                };
+            }
+        }
+
+        // -------------------------------------------------------------
+        // SHARED HOLIDAY IMPORT
+        // -------------------------------------------------------------
+        let govHolidaysCache = {};
+        let importBusy = false;
+
+        function setImportBadge(message, state = 'ready') {
+            const badge = document.getElementById('gov-sync-badge');
+            const colors = {
+                ready: 'bg-amber-200 dark:bg-amber-900 text-amber-800 dark:text-amber-200',
+                loading: 'bg-blue-200 dark:bg-blue-900 text-blue-800 dark:text-blue-200',
+                success: 'bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200',
+                error: 'bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
+            };
+
+            badge.textContent = message;
+            badge.className = `text-xs font-semibold px-2 py-0.5 rounded-full ${colors[state] || colors.ready}`;
+        }
+
+        function setImportBusy(busy) {
+            importBusy = busy;
+            document.getElementById('btn-sync-gov').disabled = busy;
+            document.getElementById('gov-csv-file').disabled = busy;
+        }
+
+        function showImportDetails(messages = []) {
+            const details = document.getElementById('gov-import-details');
+            details.textContent = messages.join('\n');
+            details.classList.toggle('hidden', messages.length === 0);
+        }
+
+        function parseHolidayContent(content, sourceName = '') {
+            const text = String(content).replace(/^\uFEFF/, '');
+
+            const looksLikeCalendar =
+                /(?:^|\r?\n)BEGIN:VCALENDAR[ \t]*(?:\r?\n|$)/i.test(text);
+
+            const calendarExtension = /\.(?:ical|ics)(?:$|[?#])/i.test(sourceName);
+
+            if (looksLikeCalendar || calendarExtension) {
+                return {
+                    ...GovHolidayIcalParser.parse(text),
+                    format: 'iCalendar'
+                };
+            }
+
+            return {
+                holidays: GovHolidayCsvParser.parse(text),
+                warnings: [],
+                format: 'CSV'
+            };
+        }
+
+        function applyParsedGovHolidays(parsedHolidays, format = 'holiday data', warnings = []) {
+            const years = Object.keys(parsedHolidays).sort();
+            let totalDates = 0;
+            let totalNames = 0;
+
+            for (const year of years) {
+                const saved = readJSON(`gov_holidays_${year}`, {});
+                const current = govHolidaysCache[year] || saved || {};
+                const merged = { ...current };
+
+                for (const [dateISO, names] of Object.entries(parsedHolidays[year])) {
+                    const existing = Array.isArray(merged[dateISO]) ? merged[dateISO] : [];
+                    merged[dateISO] = [...new Set([...existing, ...names])];
+                    totalDates++;
+                    totalNames += names.length;
+                }
+
+                govHolidaysCache[year] = merged;
+                storage.setItem(`gov_holidays_${year}`, JSON.stringify(merged));
+            }
+
+            setImportBadge(`✓ Loaded ${totalDates} Holiday Dates`, 'success');
+
+            showImportDetails([
+                `${format}: ${totalNames} holiday name(s) across ${totalDates} date(s). Years: ${years.join(', ')}.`,
+                ...warnings
+            ]);
+
+            if (!years.includes(String(selectedCalendarYear)) && years.length) {
+                selectedCalendarYear = Number(years[0]);
+            }
+
+            loadYearLeaveData();
+            renderDynamicCalendar();
+
+            showToast(`Successfully processed ${format}: ${totalDates} holiday dates loaded.`, 'success');
+        }
+
+        function importHolidayText(text, sourceName = '') {
+            if (!String(text).trim()) throw new Error('The file or pasted content is empty.');
+
+            const result = parseHolidayContent(text, sourceName);
+
+            if (!Object.keys(result.holidays).length) {
+                throw new Error(
+                    `No usable holiday dates were found in the ${result.format} data. ` +
+                    result.warnings.join(' ')
+                );
+            }
+
+            applyParsedGovHolidays(result.holidays, result.format, result.warnings);
+        }
+
+        // Kept under its original name for compatibility with the file input.
+        async function handleCsvFileUpload(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            try {
+                await readHolidayFile(file);
+            } finally {
+                // Allow selecting the same file again.
+                event.target.value = '';
+            }
+        }
+
+        async function readHolidayFile(file) {
+            if (importBusy) {
+                showToast('Please wait for the current import to finish.', 'info');
+                return;
+            }
+
+            if (!/\.(csv|ical|ics)$/i.test(file.name)) {
+                showToast('Please select a .csv, .ical, or .ics file.', 'error');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showToast('Please choose a file smaller than 10 MB.', 'error');
+                return;
+            }
+
+            setImportBusy(true);
+            showImportDetails();
+            setImportBadge('Reading file...', 'loading');
+            document.getElementById('csv-file-label').textContent = file.name;
+
+            try {
+                const content = await file.text();
+                importHolidayText(content, file.name);
+            } catch (error) {
+                setImportBadge('Error reading file', 'error');
+                showToast(error.message || 'Failed to read the selected file.', 'error');
+            } finally {
+                setImportBusy(false);
+            }
+        }
+
+        function handleImportDragOver(event) {
+            if (!Array.from(event.dataTransfer?.types || []).includes('Files')) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            event.dataTransfer.dropEffect = 'copy';
+            document.getElementById('gov-import-zone').classList.add('import-drag-over');
+        }
+
+        function handleImportDragLeave(event) {
+            const zone = event.currentTarget;
+
+            if (!event.relatedTarget || !zone.contains(event.relatedTarget)) {
+                zone.classList.remove('import-drag-over');
+            }
+        }
+
+        async function handleHolidayFileDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('gov-import-zone').classList.remove('import-drag-over');
+
+            const files = Array.from(event.dataTransfer?.files || []);
+            if (!files.length) return;
+
+            if (files.length > 1) {
+                showToast('Please import one file at a time.', 'error');
+                return;
+            }
+
+            await readHolidayFile(files[0]);
+        }
+
+        // Kept under its original name; now accepts all supported formats.
+        async function handleCsvUrlOrPaste() {
+            if (importBusy) return;
+
+            const field = document.getElementById('gov-csv-url');
+            const input = field.value.trim();
+
+            if (!input) {
+                showToast('Enter a file URL or paste CSV / iCalendar content.', 'error');
+                return;
+            }
+
+            setImportBusy(true);
+            showImportDetails();
+            setImportBadge('Reading holiday data...', 'loading');
+
+            let timeoutId;
+
+            try {
+                let text = input;
+                let sourceName = '';
+                const isURL = /^(?:https?|webcal):\/\//i.test(input);
+
+                if (isURL) {
+                    const fetchURL = input.replace(/^webcal:\/\//i, 'https://');
+                    const url = new URL(fetchURL);
+
+                    if (!['http:', 'https:'].includes(url.protocol)) {
+                        throw new Error('Only HTTP, HTTPS, and webcal links are supported.');
+                    }
+
+                    sourceName = url.pathname;
+                    setImportBadge('Fetching holiday data...', 'loading');
+
+                    const controller = new AbortController();
+                    timeoutId = setTimeout(() => controller.abort(), 20000);
+
+                    // Fetch directly. No third-party proxy receives the URL.
+                    const response = await fetch(url.href, {
+                        signal: controller.signal,
+                        credentials: 'omit'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status} while fetching holiday data.`);
+                    }
+
+                    text = await response.text();
+
+                    if (text.length > 10 * 1024 * 1024) {
+                        throw new Error('The downloaded holiday data is larger than 10 MB.');
+                    }
+                }
+
+                importHolidayText(text, sourceName);
+                field.value = '';
+            } catch (error) {
+                setImportBadge('Import failed', 'error');
+
+                let message;
+
+                if (error.name === 'AbortError') {
+                    message = 'The request timed out. Download the file and upload it instead.';
+                } else if (error instanceof TypeError && /^(?:https?|webcal):\/\//i.test(input)) {
+                    message = 'The URL could not be fetched. CORS, network, mixed-content, or sandbox restrictions may be blocking it. Download the file and upload it instead.';
+                } else {
+                    message = error.message || 'Unable to import holiday data.';
+                }
+
+                showToast(message, 'error');
+            } finally {
+                clearTimeout(timeoutId);
+                setImportBusy(false);
+            }
+        }
+
+        function loadGovHolidaysForYear(year) {
+            if (!govHolidaysCache[year]) {
+                govHolidaysCache[year] = readJSON(`gov_holidays_${year}`, {});
+            }
+
+            const count = Object.keys(govHolidaysCache[year] || {}).length;
+
+            if (count) {
+                setImportBadge(`✓ ${count} Holiday Dates (${year})`, 'success');
+            } else {
+                setImportBadge('Ready for .csv / .ical / .ics');
+            }
+        }
+
+        // -------------------------------------------------------------
+        // TAB SWITCHING & THEME
+        // -------------------------------------------------------------
+        function switchTab(tabId) {
+            const flexi = tabId === 'flexi';
+
+            document.getElementById('view-flexi').classList.toggle('hidden', !flexi);
+            document.getElementById('view-holiday').classList.toggle('hidden', flexi);
+
+            const active = 'px-4 py-2 text-sm font-semibold rounded-xl bg-brand-600 text-white transition';
+            const inactive = 'px-4 py-2 text-sm font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition';
+
+            document.getElementById('tab-flexi').className = flexi ? active : inactive;
+            document.getElementById('tab-holiday').className = flexi ? inactive : active;
+
+            if (!flexi) {
+                calculateHolidayExpiry();
+                loadYearLeaveData();
+                loadGovHolidaysForYear(selectedCalendarYear);
+                renderDynamicCalendar();
+            }
+        }
+
+        function toggleDarkMode() {
+            const dark = document.documentElement.classList.toggle('dark');
+            storage.setItem('theme', dark ? 'dark' : 'light');
+        }
+
+        const savedTheme = storage.getItem('theme');
+        if (
+            savedTheme === 'dark' ||
+            (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        ) {
+            document.documentElement.classList.add('dark');
+        }
+
+        // -------------------------------------------------------------
+        // LIVE CLOCK
+        // -------------------------------------------------------------
+        let targetReachedAlerted = false;
+        let lastTargetSignature = '';
+        let currentTargetMinutes = null;
+
+        function updateLiveClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            document.getElementById('live-clock').textContent = `${hours}:${minutes}:${seconds}`;
+
+            if (
+                currentTargetMinutes !== null &&
+                currentTargetMinutes < 1440 &&
+                now.getHours() * 60 + now.getMinutes() === currentTargetMinutes &&
+                !targetReachedAlerted
+            ) {
+                showToast('🎉 You have reached your target working hours for today!', 'success');
+                targetReachedAlerted = true;
+            }
+        }
+
+        // -------------------------------------------------------------
+        // FLEXITIME CALCULATOR
+        // -------------------------------------------------------------
+        function handleDayTypeChange() {
+            const type = document.getElementById('day-type').value;
+            const hours = document.getElementById('target-h');
+            const minutes = document.getElementById('target-m');
+
+            hours.disabled = type !== 'custom';
+            minutes.disabled = type !== 'custom';
+
+            if (type === 'mon-thu') {
+                hours.value = 7;
+                minutes.value = 15;
+            } else if (type === 'fri') {
+                hours.value = 7;
+                minutes.value = 0;
+            }
+
+            calculate();
+        }
+
+        function setNow(id) {
+            const now = new Date();
+
+            document.getElementById(id).value =
+                `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            calculate();
+        }
+
+        function setNowAll() {
+            const next = ['morning-in', 'morning-out', 'afternoon-in']
+                .find(id => !document.getElementById(id).value);
+
+            if (next) setNow(next);
+        }
+
+        function clearField(id) {
+            document.getElementById(id).value = '';
+            calculate();
+        }
+
+        function resetForm() {
+            ['morning-in', 'morning-out', 'afternoon-in'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+
+            targetReachedAlerted = false;
+            calculate();
+            showToast('Form has been reset.', 'info');
+        }
+
+        function timeToMinutes(value) {
+            const match = String(value || '').match(/^(\d{2}):(\d{2})$/);
+            if (!match) return null;
+
+            const hours = Number(match[1]);
+            const minutes = Number(match[2]);
+
+            if (hours > 23 || minutes > 59) return null;
+            return hours * 60 + minutes;
+        }
+
+        function minutesToTimeStr(total) {
+            if (!Number.isFinite(total) || total < 0) return '--:--';
+
+            const rounded = Math.round(total);
+            const hours = Math.floor(rounded / 60) % 24;
+            const minutes = rounded % 60;
+
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+
+        function getTimeCalculation() {
+            const hours = Math.max(0, Number(document.getElementById('target-h').value) || 0);
+            const minutes = Math.max(0, Number(document.getElementById('target-m').value) || 0);
+            const target = Math.round(hours * 60 + minutes);
+
+            const morningIn = timeToMinutes(document.getElementById('morning-in').value);
+            const morningOut = timeToMinutes(document.getElementById('morning-out').value);
+            const afternoonIn = timeToMinutes(document.getElementById('afternoon-in').value);
+
+            let invalid = false;
+
+            if (morningIn !== null && morningOut !== null && morningOut < morningIn) {
+                invalid = true;
+            }
+
+            if (morningOut !== null && afternoonIn !== null && afternoonIn < morningOut) {
+                invalid = true;
+            }
+
+            const morningWorked =
+                morningIn !== null && morningOut !== null && morningOut >= morningIn
+                    ? morningOut - morningIn
+                    : 0;
+
+            const remaining = Math.max(0, target - morningWorked);
+            const targetOut = afternoonIn !== null && !invalid ? afternoonIn + remaining : null;
+
+            const breakMinutes =
+                morningOut !== null && afternoonIn !== null && afternoonIn >= morningOut
+                    ? afternoonIn - morningOut
+                    : 0;
+
+            return {
+                target,
+                morningIn,
+                morningOut,
+                afternoonIn,
+                morningWorked,
+                remaining,
+                targetOut,
+                breakMinutes,
+                invalid
+            };
+        }
+
+        function calculate() {
+            const data = getTimeCalculation();
+            const output = data.targetOut === null ? '--:--' : minutesToTimeStr(data.targetOut);
+
+            document.getElementById('display-target-out').textContent = output;
+            document.getElementById('big-clock-out').textContent = output;
+            document.getElementById('stat-morning-worked').textContent = formatMinutes(data.morningWorked);
+            document.getElementById('stat-remaining').textContent = formatMinutes(data.remaining);
+            document.getElementById('stat-break-duration').textContent = `${data.breakMinutes}m`;
+            document.getElementById('stat-overtime').textContent = `${Math.max(0, data.morningWorked - data.target)}m`;
+
+            const percent = data.target > 0
+                ? Math.min(100, Math.max(0, data.morningWorked / data.target * 100))
+                : 0;
+
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            document.getElementById('progress-text').textContent =
+                `${(data.morningWorked / 60).toFixed(2)} / ${(data.target / 60).toFixed(2)} hrs`;
+
+            let status;
+
+            if (data.invalid) {
+                status = 'Check time order (same-day shifts only)';
+            } else if (data.morningIn === null) {
+                status = 'Awaiting Morning Clock-In';
+            } else if (data.morningOut === null) {
+                status = 'Currently working morning shift';
+            } else if (data.afternoonIn === null) {
+                status = 'On lunch break / Awaiting Afternoon Return';
+            } else if (data.targetOut >= 1440) {
+                status = 'Target clock-out is the following day';
+            } else {
+                status = 'Afternoon shift in progress';
+            }
+
+            document.getElementById('stat-status').textContent = status;
+
+            const signature = [
+                data.target,
+                data.morningIn,
+                data.morningOut,
+                data.afternoonIn
+            ].join('|');
+
+            if (signature !== lastTargetSignature) {
+                targetReachedAlerted = false;
+                lastTargetSignature = signature;
+            }
+
+            currentTargetMinutes = data.targetOut;
+        }
+
+        function saveToHistory() {
+            const data = getTimeCalculation();
+
+            if (data.morningIn === null && data.afternoonIn === null) {
+                showToast('Please enter time data before saving.', 'error');
+                return;
+            }
+
+            if (data.invalid) {
+                showToast('Please correct the order of the entered times before saving.', 'error');
+                return;
+            }
+
+            const workedMinutes = data.morningWorked +
+                (data.targetOut !== null && data.afternoonIn !== null
+                    ? data.targetOut - data.afternoonIn
+                    : 0);
+
+            const record = {
+                date: new Date().toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    weekday: 'short'
+                }),
+                dayType: document.getElementById('day-type').value,
+                target: formatMinutes(data.target),
+                morningIn: document.getElementById('morning-in').value || '--:--',
+                morningOut: document.getElementById('morning-out').value || '--:--',
+                afternoonIn: document.getElementById('afternoon-in').value || '--:--',
+                targetOut: document.getElementById('big-clock-out').textContent,
+                workedMins: workedMinutes
+            };
+
+            const history = readJSON('flexi_history', []);
+            history.unshift(record);
+            storage.setItem('flexi_history', JSON.stringify(history.slice(0, 20)));
+
+            loadHistory();
+            showToast('Shift log successfully saved!', 'success');
+        }
+
+        function loadHistory() {
+            const history = readJSON('flexi_history', []);
+            const container = document.getElementById('history-container');
+
+            const total = history.reduce((sum, item) => {
+                const value = Number(item.workedMins);
+                return sum + (Number.isFinite(value) && value > 0 ? value : 0);
+            }, 0);
+
+            document.getElementById('weekly-total').textContent = formatMinutes(total);
+
+            if (!history.length) {
+                container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No saved logs yet.</p>';
+                return;
+            }
+
+            container.innerHTML = history.map(item => `
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div>
+                        <span class="font-bold block">${escapeHTML(item.date)} (${escapeHTML(item.target)})</span>
+                        <span class="text-slate-500 dark:text-slate-400">
+                            In: ${escapeHTML(item.morningIn)} &bull;
+                            Out: ${escapeHTML(item.morningOut)} &bull;
+                            Aft: ${escapeHTML(item.afternoonIn)}
+                        </span>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-mono-time font-bold text-brand-600 dark:text-brand-400 block">${escapeHTML(item.targetOut)}</span>
+                        <span class="text-xs text-slate-400">Target Out</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function clearHistory() {
+            storage.removeItem('flexi_history');
+            loadHistory();
+            showToast('History cleared.', 'info');
+        }
+
+        function exportData() {
+            const blob = new Blob([storage.getItem('flexi_history') || '[]'], {
+                type: 'application/json'
+            });
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `flexitime-logs-${localDateISO()}.json`;
+
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            showToast('Logs exported. If downloads are blocked, run the page outside the sandbox.', 'success');
+        }
+
+        // -------------------------------------------------------------
+        // BANK HOLIDAY TRACKER
+        // -------------------------------------------------------------
+        function setHolidayPreset(days) {
+            document.getElementById('holiday-days').value = days;
+            calculateHolidayExpiry();
+        }
+
+        function getHolidayExpiry() {
+            const value = document.getElementById('holiday-date').value;
+            const parsed = GovHolidayCsvParser.normalizeDate(value);
+            if (!parsed) return null;
+
+            const enteredDays = Number(document.getElementById('holiday-days').value);
+            const days = Number.isInteger(enteredDays) && enteredDays >= 1 && enteredDays <= 1000
+                ? enteredDays
+                : 180;
+
+            const workedDate = new Date(value + 'T00:00:00');
+            const expiryDate = new Date(workedDate);
+            expiryDate.setDate(expiryDate.getDate() + days);
+
+            const remaining = calendarDayNumber(localDateISO(expiryDate)) -
+                calendarDayNumber(localDateISO());
+
+            return {
+                value,
+                days,
+                workedDate,
+                expiryDate,
+                remaining
+            };
+        }
+
+        function calculateHolidayExpiry() {
+            const data = getHolidayExpiry();
+            const badge = document.getElementById('preview-status-badge');
+
+            if (!data) {
+                document.getElementById('preview-expiry-date').textContent = '--';
+                document.getElementById('preview-days-left').textContent = '-- days left';
+                badge.className = 'px-2.5 py-1 rounded-full font-semibold bg-slate-700 text-slate-300';
+                badge.textContent = 'Awaiting Input';
+                return;
+            }
+
+            document.getElementById('preview-expiry-date').textContent =
+                data.expiryDate.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+            document.getElementById('preview-days-left').textContent =
+                `${Math.abs(data.remaining)} days ${data.remaining >= 0 ? 'remaining' : 'overdue'}`;
+
+            if (data.remaining < 0) {
+                badge.className = 'px-2.5 py-1 rounded-full font-semibold bg-rose-500/20 text-rose-300';
+                badge.textContent = 'Expired';
+            } else if (data.remaining <= 30) {
+                badge.className = 'px-2.5 py-1 rounded-full font-semibold bg-amber-500/20 text-amber-300';
+                badge.textContent = 'Expiring Soon';
+            } else {
+                badge.className = 'px-2.5 py-1 rounded-full font-semibold bg-emerald-500/20 text-emerald-300';
+                badge.textContent = 'Active';
+            }
+        }
+
+        function saveHoliday() {
+            const data = getHolidayExpiry();
+
+            if (!data) {
+                showToast('Please select a valid bank holiday worked date.', 'error');
+                return;
+            }
+
+            const record = {
+                id: Date.now(),
+                name: document.getElementById('holiday-name').value.trim() || 'Bank Holiday',
+                workedDateISO: data.value,
+                workedDate: data.workedDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                }),
+                expiryDateISO: localDateISO(data.expiryDate),
+                expiryDateFormatted: data.expiryDate.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                }),
+                daysAllowed: data.days
+            };
+
+            const holidays = readJSON('bank_holiday_records', []);
+            holidays.push(record);
+            holidays.sort((a, b) => a.expiryDateISO.localeCompare(b.expiryDateISO));
+
+            storage.setItem('bank_holiday_records', JSON.stringify(holidays));
+            document.getElementById('holiday-name').value = '';
+
+            loadHolidayHistory();
+            updateHolidaySimulatorBadges();
+            renderDynamicCalendar();
+
+            showToast('Bank holiday saved. Drag it onto the calendar to simulate using it.', 'success');
+        }
+
+        function loadHolidayHistory() {
+            const container = document.getElementById('holiday-history-container');
+            const holidays = readJSON('bank_holiday_records', []);
+
+            if (!holidays.length) {
+                container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No saved bank holiday records yet.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            for (const item of holidays) {
+                const remaining = calendarDayNumber(item.expiryDateISO) -
+                    calendarDayNumber(localDateISO());
+
+                const row = document.createElement('div');
+                row.className = 'p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 flex flex-wrap items-center justify-between gap-3 text-xs';
+
+                const description = document.createElement('div');
+                description.className = 'space-y-1 min-w-0';
+
+                const name = document.createElement('strong');
+                name.className = 'block break-words';
+                name.textContent = item.name;
+
+                const dates = document.createElement('p');
+                dates.className = 'text-slate-500 dark:text-slate-400';
+                dates.textContent = `Worked: ${item.workedDate} • Expires: ${item.expiryDateFormatted}`;
+
+                description.append(name, dates);
+
+                const controls = document.createElement('div');
+                controls.className = 'flex flex-wrap items-center gap-2';
+
+                const drag = document.createElement('div');
+                drag.draggable = true;
+                drag.className = 'draggable-chip px-2.5 py-1 rounded-lg bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 font-semibold';
+                drag.textContent = '⋮⋮ Drag to Date';
+                drag.title = 'Drag this bank holiday onto a calendar date';
+                drag.addEventListener('dragstart', event => {
+                    handleItemDragStart(event, item.id, item.name);
+                });
+
+                const status = document.createElement('span');
+                status.className = remaining < 0
+                    ? 'px-2 py-1 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
+                    : remaining <= 30
+                        ? 'px-2 py-1 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                        : 'px-2 py-1 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300';
+
+                status.textContent = remaining < 0 ? 'Expired' : `${remaining}d left`;
+
+                const remove = document.createElement('button');
+                remove.className = 'text-slate-400 hover:text-rose-600 p-1';
+                remove.textContent = '×';
+                remove.title = 'Delete bank holiday';
+                remove.setAttribute('aria-label', `Delete ${item.name}`);
+                remove.addEventListener('click', () => deleteHoliday(item.id));
+
+                controls.append(drag, status, remove);
+                row.append(description, controls);
+                container.appendChild(row);
+            }
+        }
+
+        function deleteHoliday(id) {
+            const holidays = readJSON('bank_holiday_records', [])
+                .filter(item => item.id !== id);
+
+            storage.setItem('bank_holiday_records', JSON.stringify(holidays));
+            loadHolidayHistory();
+            updateHolidaySimulatorBadges();
+            renderDynamicCalendar();
+
+            showToast('Bank holiday record removed.', 'info');
+        }
+
+        function clearHolidayHistory() {
+            storage.removeItem('bank_holiday_records');
+            loadHolidayHistory();
+            updateHolidaySimulatorBadges();
+            renderDynamicCalendar();
+
+            showToast('All bank holiday records cleared.', 'info');
+        }
+
+        // -------------------------------------------------------------
+        // ANNUAL LEAVE SIMULATOR
+        // -------------------------------------------------------------
+        let selectedCalendarYear = 2027;
+        let calendarMarkMode = 'annual';
+
+        function setCalendarMarkMode(mode) {
+            calendarMarkMode = mode;
+
+            const base = 'px-3 py-1.5 rounded-lg transition ';
+            const inactive = 'text-slate-600 dark:text-slate-300';
+
+            document.getElementById('btn-mode-annual').className =
+                base + (mode === 'annual' ? 'bg-brand-600 text-white' : inactive);
+
+            document.getElementById('btn-mode-holiday').className =
+                base + (mode === 'holiday' ? 'bg-purple-600 text-white' : inactive);
+        }
+
+        function navigateYear(delta) {
+            const next = selectedCalendarYear + delta;
+            if (next < 1900 || next > 9999) return;
+
+            selectedCalendarYear = next;
+            loadGovHolidaysForYear(next);
+            loadYearLeaveData();
+            renderDynamicCalendar();
+        }
+
+        function onYearInputChanged() {
+            const input = document.getElementById('calendar-year-input');
+            const year = Number(input.value);
+
+            if (!Number.isInteger(year) || year < 1900 || year > 9999) {
+                input.value = selectedCalendarYear;
+                showToast('Enter a year between 1900 and 9999.', 'error');
+                return;
+            }
+
+            selectedCalendarYear = year;
+            loadGovHolidaysForYear(year);
+            loadYearLeaveData();
+            renderDynamicCalendar();
+        }
+
+        function getLeaveCalendarSelections() {
+            return readJSON('calendar_selected_dates_v2', {});
+        }
+
+        function saveLeaveCalendarSelections(data) {
+            storage.setItem('calendar_selected_dates_v2', JSON.stringify(data));
+        }
+
+        function onManualInputChanged() {
+            const total = Number(document.getElementById('input-total-leaves').value) || 0;
+            const used = Number(document.getElementById('input-used-leaves').value) || 0;
+
+            storage.setItem(`annual_leave_total_${selectedCalendarYear}`, total);
+            storage.setItem(`annual_leave_used_${selectedCalendarYear}`, used);
+
+            calculateRemainingLeaves();
+        }
+
+        function calculateRemainingLeaves() {
+            const total = Number(document.getElementById('input-total-leaves').value) || 0;
+            const used = Number(document.getElementById('input-used-leaves').value) || 0;
+            const remaining = Number((total - used).toFixed(2));
+
+            const display = document.getElementById('display-remaining-leaves');
+            const card = document.getElementById('card-remaining-box');
+            const status = document.getElementById('display-remaining-status');
+
+            display.textContent = remaining;
+
+            if (remaining < 0) {
+                card.className = 'p-5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 space-y-2';
+                display.className = 'text-3xl font-black font-mono-time text-rose-600 dark:text-rose-400';
+                status.textContent = `Over-allocated by ${Math.abs(remaining)} days!`;
+                status.className = 'text-xs font-bold text-rose-600 dark:text-rose-400';
+            } else if (remaining === 0) {
+                card.className = 'p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 space-y-2';
+                display.className = 'text-3xl font-black font-mono-time text-amber-700 dark:text-amber-400';
+                status.textContent = 'All annual leave has been allocated.';
+                status.className = 'text-xs font-medium text-amber-700 dark:text-amber-400';
+            } else {
+                card.className = 'p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2';
+                display.className = 'text-3xl font-black font-mono-time text-emerald-700 dark:text-emerald-300';
+                status.textContent = 'Balance in good standing';
+                status.className = 'text-xs font-medium text-emerald-600 dark:text-emerald-400';
+            }
+
+            updateHolidaySimulatorBadges();
+        }
+
+        function toggleCalendarDate(dateISO) {
+            const selections = getLeaveCalendarSelections();
+            const previous = selections[dateISO];
+            const next = previous === calendarMarkMode ? null : calendarMarkMode;
+
+            let used = Number(document.getElementById('input-used-leaves').value) || 0;
+
+            if (previous === 'annual') used = Math.max(0, used - 1);
+            if (next === 'annual') used += 1;
+
+            if (next) {
+                selections[dateISO] = next;
+            } else {
+                delete selections[dateISO];
+            }
+
+            saveLeaveCalendarSelections(selections);
+            document.getElementById('input-used-leaves').value = used;
+            storage.setItem(`annual_leave_used_${selectedCalendarYear}`, used);
+
+            calculateRemainingLeaves();
+            renderDynamicCalendar();
+        }
+
+        function loadYearLeaveData() {
+            document.querySelectorAll('.year-label').forEach(element => {
+                element.textContent = selectedCalendarYear;
+            });
+
+            document.getElementById('calendar-year-input').value = selectedCalendarYear;
+
+            const totalKey = `annual_leave_total_${selectedCalendarYear}`;
+            const usedKey = `annual_leave_used_${selectedCalendarYear}`;
+
+            const total = storage.getItem(totalKey);
+            const used = storage.getItem(usedKey);
+
+            document.getElementById('input-total-leaves').value = total ?? 26;
+
+            if (total === null) storage.setItem(totalKey, 26);
+
+            if (used === null) {
+                const selections = getLeaveCalendarSelections();
+                const prefix = `${selectedCalendarYear}-`;
+
+                const count = Object.keys(selections).filter(date =>
+                    date.startsWith(prefix) && selections[date] === 'annual'
+                ).length;
+
+                document.getElementById('input-used-leaves').value = count;
+                storage.setItem(usedKey, count);
+            } else {
+                document.getElementById('input-used-leaves').value = used;
+            }
+
+            calculateRemainingLeaves();
+        }
+
+        // -------------------------------------------------------------
+        // BANK HOLIDAY DRAG & DROP
+        // -------------------------------------------------------------
+        function handleItemDragStart(event, id, name) {
+            event.dataTransfer.setData('text/plain', JSON.stringify({
+                type: 'bank_holiday',
+                id,
+                name
+            }));
+            event.dataTransfer.effectAllowed = 'copyMove';
+        }
+
+        function handleTokenDragStart(event) {
+            event.dataTransfer.setData('text/plain', JSON.stringify({
+                type: 'bank_holiday',
+                name: 'Bank Holiday'
+            }));
+            event.dataTransfer.effectAllowed = 'copyMove';
+        }
+
+        function handleDayDragOver(event) {
+            if (Array.from(event.dataTransfer.types || []).includes('Files')) return;
+
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDayDragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDayDrop(event, dateISO) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+
+            if (event.dataTransfer.files?.length) {
+                showToast('Drop calendar files onto the holiday import panel above.', 'info');
+                return;
+            }
+
+            try {
+                const raw = event.dataTransfer.getData('text/plain');
+                if (!raw) return;
+
+                const data = JSON.parse(raw);
+                if (data.type !== 'bank_holiday') return;
+
+                const selections = getLeaveCalendarSelections();
+                let used = Number(document.getElementById('input-used-leaves').value) || 0;
+
+                if (selections[dateISO] === 'annual') {
+                    used = Math.max(0, used - 1);
+                }
+
+                selections[dateISO] = 'holiday';
+                saveLeaveCalendarSelections(selections);
+
+                document.getElementById('input-used-leaves').value = used;
+                storage.setItem(`annual_leave_used_${selectedCalendarYear}`, used);
+
+                calculateRemainingLeaves();
+                renderDynamicCalendar();
+
+                showToast(`Used Bank Holiday (${data.name || 'Holiday'}) on ${dateISO}.`, 'success');
+            } catch {
+                showToast('This dragged item is not a supported bank holiday token.', 'error');
+            }
+        }
+
+        function updateHolidaySimulatorBadges() {
+            const holidays = readJSON('bank_holiday_records', []);
+            const selections = getLeaveCalendarSelections();
+            const prefix = `${selectedCalendarYear}-`;
+
+            const used = Object.keys(selections).filter(date =>
+                date.startsWith(prefix) && selections[date] === 'holiday'
+            ).length;
+
+            const remaining = holidays.length - used;
+
+            document.getElementById('badge-total-holidays').textContent =
+                `+${holidays.length} Bank Holidays Available`;
+
+            document.getElementById('badge-used-holidays').textContent =
+                `${used} Bank Holidays Claimed`;
+
+            const badge = document.getElementById('badge-remaining-holidays');
+            badge.textContent = `${remaining} Bank Holidays Left`;
+
+            badge.className = remaining < 0
+                ? 'text-xs font-bold px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
+                : 'text-xs font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300';
+        }
+
+        // -------------------------------------------------------------
+        // CONFIRMATION MODAL
+        // -------------------------------------------------------------
+        let confirmCallback = null;
+        let confirmPreviousFocus = null;
+
+        function openConfirm(message, callback) {
+            confirmPreviousFocus = document.activeElement;
+            confirmCallback = callback;
+            document.getElementById('confirm-message').textContent = message;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+            document.getElementById('confirm-accept').focus();
+        }
+
+        function closeConfirm(accepted) {
+            const callback = confirmCallback;
+            confirmCallback = null;
+
+            document.getElementById('confirm-modal').classList.add('hidden');
+            confirmPreviousFocus?.focus();
+
+            if (accepted && callback) callback();
+        }
+
+        document.getElementById('confirm-modal').addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeConfirm(false);
+            }
+
+            if (event.key === 'Tab') {
+                const buttons = Array.from(event.currentTarget.querySelectorAll('button'));
+                const first = buttons[0];
+                const last = buttons[buttons.length - 1];
+
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        });
+
+        function clearSelectedDaysOfYear() {
+            const year = selectedCalendarYear;
+
+            openConfirm(`Reset all marked calendar leave and used days for ${year}?`, () => {
+                const selections = getLeaveCalendarSelections();
+                const prefix = `${year}-`;
+
+                Object.keys(selections).forEach(date => {
+                    if (date.startsWith(prefix)) delete selections[date];
+                });
+
+                saveLeaveCalendarSelections(selections);
+                storage.setItem(`annual_leave_used_${year}`, 0);
+
+                if (selectedCalendarYear === year) {
+                    document.getElementById('input-used-leaves').value = 0;
+                    calculateRemainingLeaves();
+                    renderDynamicCalendar();
+                }
+
+                showToast(`Calendar marks reset for ${year}.`, 'info');
+            });
+        }
+
+        // -------------------------------------------------------------
+        // CALENDAR RENDERER
+        // -------------------------------------------------------------
+        const MONTH_NAMES = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        function renderDynamicCalendar() {
+            const grid = document.getElementById('calendar-12-months-grid');
+            if (!grid) return;
+
+            grid.innerHTML = '';
+
+            const selections = getLeaveCalendarSelections();
+            const yearHolidays = govHolidaysCache[selectedCalendarYear] || {};
+            const todayISO = localDateISO();
+
+            for (let month = 0; month < 12; month++) {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-50 dark:bg-slate-700/30 p-3 rounded-xl border border-slate-200 dark:border-slate-700';
+
+                card.innerHTML = `
+                    <div class="text-xs font-bold mb-2 flex justify-between items-center">
+                        <span>${MONTH_NAMES[month]}</span>
+                        <span class="text-xs text-slate-400 font-normal">${selectedCalendarYear}</span>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 mb-1">
+                        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span>
+                        <span class="text-rose-400">Sa</span><span class="text-rose-400">Su</span>
+                    </div>
+                `;
+
+                const daysGrid = document.createElement('div');
+                daysGrid.className = 'grid grid-cols-7 gap-1 text-center text-xs';
+
+                const firstDay = new Date(selectedCalendarYear, month, 1).getDay();
+                const offset = firstDay === 0 ? 6 : firstDay - 1;
+                const daysInMonth = new Date(selectedCalendarYear, month + 1, 0).getDate();
+
+                for (let blank = 0; blank < offset; blank++) {
+                    const empty = document.createElement('div');
+                    empty.className = 'h-7';
+                    daysGrid.appendChild(empty);
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateISO = `${selectedCalendarYear}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const dayOfWeek = new Date(selectedCalendarYear, month, day).getDay();
+                    const weekend = dayOfWeek === 0 || dayOfWeek === 6;
+                    const mark = selections[dateISO];
+                    const holidayNames = yearHolidays[dateISO] || [];
+
+                    const button = document.createElement('button');
+                    button.type = 'button';
+
+                    let className = 'h-7 w-full flex items-center justify-center rounded-lg text-xs font-medium transition cursor-pointer relative ';
+                    let title = dateISO;
+
+                    if (mark === 'annual') {
+                        className += 'bg-brand-600 text-white font-bold shadow-sm ring-1 ring-brand-500 hover:bg-brand-700';
+                        title = `Annual Leave Taken (${dateISO})`;
+                    } else if (mark === 'holiday') {
+                        className += 'bg-purple-600 text-white font-bold shadow-sm ring-1 ring-purple-500 hover:bg-purple-700';
+                        title = `Bank Holiday Lieu Day Used (${dateISO})`;
+                    } else if (holidayNames.length) {
+                        className += 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 font-bold hover:bg-amber-200 dark:hover:bg-amber-900';
+                    } else if (weekend) {
+                        className += 'text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600/50';
+                    } else {
+                        className += 'text-slate-700 dark:text-slate-200 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-slate-600/50';
+                    }
+
+                    if (holidayNames.length) {
+                        title += `\nGov Public Holiday: ${holidayNames.join(' / ')}`;
+                    }
+
+                    if (dateISO === todayISO) {
+                        className += ' outline outline-2 outline-offset-1 outline-sky-400';
+                        button.setAttribute('aria-current', 'date');
+                    }
+
+                    button.className = className;
+                    button.textContent = day;
+                    button.title = title;
+                    button.setAttribute('aria-label', title);
+                    button.setAttribute('aria-pressed', mark ? 'true' : 'false');
+
+                    button.addEventListener('click', () => toggleCalendarDate(dateISO));
+                    button.addEventListener('dragover', handleDayDragOver);
+                    button.addEventListener('dragleave', handleDayDragLeave);
+                    button.addEventListener('drop', event => handleDayDrop(event, dateISO));
+
+                    if (mark) {
+                        const dot = document.createElement('span');
+                        dot.className = 'absolute bottom-0.5 w-1 h-1 bg-white rounded-full';
+                        button.appendChild(dot);
+                    }
+
+                    if (holidayNames.length) {
+                        const dot = document.createElement('span');
+                        dot.className = 'absolute top-0.5 right-1 w-1 h-1 bg-amber-500 rounded-full';
+                        button.appendChild(dot);
+                    }
+
+                    daysGrid.appendChild(button);
+                }
+
+                card.appendChild(daysGrid);
+                grid.appendChild(card);
+            }
+        }
+
+        // -------------------------------------------------------------
+        // TOAST NOTIFICATIONS
+        // -------------------------------------------------------------
+        let toastTimer;
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const text = document.getElementById('toast-message');
+            const icon = document.getElementById('toast-icon');
+
+            const colors = {
+                success: 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200',
+                error: 'bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200',
+                info: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200'
+            };
+
+            text.textContent = message;
+            icon.textContent = type === 'error' ? '!' : type === 'info' ? 'i' : '✓';
+
+            toast.className = `mb-6 p-4 rounded-xl border flex items-start justify-between gap-3 shadow-sm ${colors[type] || colors.info}`;
+
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(hideToast, type === 'error' ? 9000 : 5000);
+        }
+
+        function hideToast() {
+            clearTimeout(toastTimer);
+            document.getElementById('toast').classList.add('hidden');
+        }
+
+        // -------------------------------------------------------------
+        // INITIALIZATION
+        // -------------------------------------------------------------
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!storage.persistent) {
+                document.getElementById('storage-notice').classList.remove('hidden');
+            }
+
+            handleDayTypeChange();
+            loadHistory();
+
+            document.getElementById('holiday-date').value = localDateISO();
+            calculateHolidayExpiry();
+            loadHolidayHistory();
+
+            loadYearLeaveData();
+            loadGovHolidaysForYear(selectedCalendarYear);
+            renderDynamicCalendar();
+
+            updateLiveClock();
+            setInterval(updateLiveClock, 1000);
+        });
+
+        // Prevent dropped files from navigating away from the calculator.
+        document.addEventListener('dragover', event => {
+            if (Array.from(event.dataTransfer?.types || []).includes('Files')) {
+                event.preventDefault();
+            }
+        });
+
+        document.addEventListener('drop', event => {
+            if (event.dataTransfer?.files?.length) {
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
