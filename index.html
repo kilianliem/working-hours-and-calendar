@@ -159,6 +159,18 @@
             background: #b45309;
         }
 
+        .drag-over {
+            outline: 2px dashed #9333ea !important;
+            background-color: #f3e8ff !important;
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .dark .drag-over {
+            background-color: #3b0764 !important;
+            outline-color: #c084fc !important;
+        }
+
         .import-drag-over {
             outline: 3px dashed #d97706;
             outline-offset: 4px;
@@ -167,6 +179,16 @@
 
         .dark .import-drag-over {
             background-color: #451a03 !important;
+        }
+
+        .draggable-chip {
+            cursor: grab;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .draggable-chip:active {
+            cursor: grabbing;
         }
 
         input[type="time"] {
@@ -238,7 +260,7 @@
             <button onclick="hideToast()" class="text-xl leading-none opacity-60 hover:opacity-100" aria-label="Dismiss notification">&times;</button>
         </div>
 
-        <!-- TAB 2 (Bank Holiday & Leave Simulator) -->
+        <!-- TAB 2 (Now First) -->
         <div id="view-holiday" class="space-y-8">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <section class="card space-y-4">
@@ -291,7 +313,7 @@
                         <div class="flex items-start justify-between gap-3">
                             <div>
                                 <h3 class="text-sm font-bold uppercase tracking-wider">Saved Bank Holidays (Earned In-Lieu)</h3>
-                                <p class="text-xs text-slate-400 mt-1">Manage your earned in-lieu days.</p>
+                                <p class="text-xs text-slate-400 mt-1">Drag an item onto a calendar date below to use it.</p>
                             </div>
                             <button onclick="clearHolidayHistory()" class="text-xs text-rose-500 font-medium whitespace-nowrap">Clear All</button>
                         </div>
@@ -365,15 +387,21 @@
 
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-700">
                     <div>
-                        <h2 class="text-lg font-bold" id="simulator-heading">Annual Leave Hour Simulator</h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1" id="simulator-subheading">Click calendar dates to mark your leave.</p>
+                        <h2 class="text-lg font-bold">Annual Leave Hour Simulator</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Click dates or drag bank holidays directly onto the calendar.</p>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3">
                         <div class="flex flex-wrap items-center bg-slate-100 dark:bg-slate-700/60 p-1 rounded-xl text-xs font-semibold gap-1">
                             <span class="px-2 text-slate-500 dark:text-slate-400 uppercase">Mode:</span>
-                            <button id="btn-mode-annual" onclick="setCalendarMarkMode('annual')" class="px-3 py-1.5 rounded-lg bg-brand-600 text-white transition">Annual Leave</button>
-                            <button id="btn-mode-holiday" onclick="setCalendarMarkMode('holiday')" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 transition">Bank Holiday</button>
+                            <button id="btn-mode-annual" onclick="setCalendarMarkMode('annual')" class="px-3 py-1.5 rounded-lg bg-brand-600 text-white">Annual Leave</button>
+                            <button id="btn-mode-holiday" onclick="setCalendarMarkMode('holiday')" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300">Bank Holiday</button>
+                            <div
+                                draggable="true"
+                                ondragstart="handleTokenDragStart(event)"
+                                class="draggable-chip px-3 py-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700"
+                                title="Drag onto a calendar day"
+                            >⋮⋮ Drag to Day</div>
                         </div>
 
                         <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-700/60 p-1 rounded-xl">
@@ -387,30 +415,33 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 space-y-2">
                         <div class="flex flex-wrap items-center justify-between gap-2">
-                            <label for="input-total-leaves" class="label mb-0" id="label-card-1">1. Total Annual Leaves</label>
+                            <label for="input-total-leaves" class="label mb-0">1. Total Annual Leaves</label>
+                            <span id="badge-total-holidays" class="text-xs font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">+0 Bank Holidays</span>
                         </div>
                         <input type="number" id="input-total-leaves" min="0" step="0.5" value="26" oninput="onManualInputChanged()" class="field text-xl font-black">
-                        <p class="text-xs text-slate-400"><span id="label-card-1-sub">Annual entitlement</span> for <span class="year-label font-semibold">2027</span></p>
+                        <p class="text-xs text-slate-400">Annual entitlement in days for <span class="year-label font-semibold">2027</span></p>
                     </div>
 
                     <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-700 space-y-2">
                         <div class="flex flex-wrap items-center justify-between gap-2">
-                            <label for="input-used-leaves" class="label mb-0" id="label-card-2">2. Days Used</label>
+                            <label for="input-used-leaves" class="label mb-0">2. Days Used</label>
+                            <span id="badge-used-holidays" class="text-xs font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">0 Bank Holidays Used</span>
                         </div>
                         <input type="number" id="input-used-leaves" min="0" step="0.5" value="0" oninput="onManualInputChanged()" class="field text-xl font-black">
                         <div class="flex items-center justify-between gap-2 text-xs">
-                            <span class="text-slate-400">Type or click calendar dates</span>
+                            <span class="text-slate-400">Type or click/drag onto calendar</span>
                             <button onclick="clearSelectedDaysOfYear()" class="text-rose-500 font-semibold whitespace-nowrap">Reset Year</button>
                         </div>
                     </div>
 
                     <div id="card-remaining-box" class="p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2">
                         <div class="flex flex-wrap items-center justify-between gap-2">
-                            <span class="text-xs font-bold uppercase tracking-wider" id="label-card-3">3. Remaining Leaves</span>
+                            <span class="text-xs font-bold uppercase tracking-wider">3. Remaining Leaves</span>
+                            <span id="badge-remaining-holidays" class="text-xs font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">0 Bank Holidays Left</span>
                         </div>
                         <div class="flex flex-wrap items-baseline gap-2 py-1">
                             <span id="display-remaining-leaves" class="text-3xl font-black font-mono-time text-emerald-700 dark:text-emerald-300">26</span>
-                            <span class="text-sm font-semibold uppercase" id="label-card-3-unit">Annual Days</span>
+                            <span class="text-sm font-semibold uppercase">Annual Days</span>
                         </div>
                         <p id="display-remaining-status" class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Balance in good standing</p>
                     </div>
@@ -438,7 +469,7 @@
             </section>
         </div>
 
-        <!-- TAB 1 (FlexiTime Calculator) -->
+        <!-- TAB 1 (Now Second) -->
         <div id="view-flexi" class="hidden space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div class="md:col-span-2 space-y-6">
@@ -1857,9 +1888,10 @@
             document.getElementById('holiday-name').value = '';
 
             loadHolidayHistory();
-            if (calendarMarkMode === 'holiday') loadYearLeaveData();
+            updateHolidaySimulatorBadges();
+            renderDynamicCalendar();
 
-            showToast('Bank holiday saved.', 'success');
+            showToast('Bank holiday saved. Drag it onto the calendar to simulate using it.', 'success');
         }
 
         function loadHolidayHistory() {
@@ -1896,6 +1928,15 @@
                 const controls = document.createElement('div');
                 controls.className = 'flex flex-wrap items-center gap-2';
 
+                const drag = document.createElement('div');
+                drag.draggable = true;
+                drag.className = 'draggable-chip px-2.5 py-1 rounded-lg bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700 font-semibold';
+                drag.textContent = '⋮⋮ Drag to Date';
+                drag.title = 'Drag this bank holiday onto a calendar date';
+                drag.addEventListener('dragstart', event => {
+                    handleItemDragStart(event, item.id, item.name);
+                });
+
                 const status = document.createElement('span');
                 status.className = remaining < 0
                     ? 'px-2 py-1 rounded bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
@@ -1912,7 +1953,7 @@
                 remove.setAttribute('aria-label', `Delete ${item.name}`);
                 remove.addEventListener('click', () => deleteHoliday(item.id));
 
-                controls.append(status, remove);
+                controls.append(drag, status, remove);
                 row.append(description, controls);
                 container.appendChild(row);
             }
@@ -1924,7 +1965,8 @@
 
             storage.setItem('bank_holiday_records', JSON.stringify(holidays));
             loadHolidayHistory();
-            if (calendarMarkMode === 'holiday') loadYearLeaveData();
+            updateHolidaySimulatorBadges();
+            renderDynamicCalendar();
 
             showToast('Bank holiday record removed.', 'info');
         }
@@ -1932,16 +1974,17 @@
         function clearHolidayHistory() {
             storage.removeItem('bank_holiday_records');
             loadHolidayHistory();
-            if (calendarMarkMode === 'holiday') loadYearLeaveData();
+            updateHolidaySimulatorBadges();
+            renderDynamicCalendar();
 
             showToast('All bank holiday records cleared.', 'info');
         }
 
         // -------------------------------------------------------------
-        // ANNUAL / BANK HOLIDAY LEAVE SIMULATOR
+        // ANNUAL LEAVE SIMULATOR
         // -------------------------------------------------------------
         let selectedCalendarYear = 2027;
-        let calendarMarkMode = 'annual'; // 'annual' or 'holiday'
+        let calendarMarkMode = 'annual';
 
         function setCalendarMarkMode(mode) {
             calendarMarkMode = mode;
@@ -1954,9 +1997,6 @@
 
             document.getElementById('btn-mode-holiday').className =
                 base + (mode === 'holiday' ? 'bg-purple-600 text-white' : inactive);
-
-            loadYearLeaveData();
-            renderDynamicCalendar();
         }
 
         function navigateYear(delta) {
@@ -1997,13 +2037,8 @@
             const total = Number(document.getElementById('input-total-leaves').value) || 0;
             const used = Number(document.getElementById('input-used-leaves').value) || 0;
 
-            if (calendarMarkMode === 'annual') {
-                storage.setItem(`annual_leave_total_${selectedCalendarYear}`, total);
-                storage.setItem(`annual_leave_used_${selectedCalendarYear}`, used);
-            } else {
-                // In bank holiday mode, total comes from saved records or manual override
-                storage.setItem(`bank_holiday_used_${selectedCalendarYear}`, used);
-            }
+            storage.setItem(`annual_leave_total_${selectedCalendarYear}`, total);
+            storage.setItem(`annual_leave_used_${selectedCalendarYear}`, used);
 
             calculateRemainingLeaves();
         }
@@ -2027,7 +2062,7 @@
             } else if (remaining === 0) {
                 card.className = 'p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 space-y-2';
                 display.className = 'text-3xl font-black font-mono-time text-amber-700 dark:text-amber-400';
-                status.textContent = calendarMarkMode === 'annual' ? 'All annual leave has been allocated.' : 'All in-lieu days have been allocated.';
+                status.textContent = 'All annual leave has been allocated.';
                 status.className = 'text-xs font-medium text-amber-700 dark:text-amber-400';
             } else {
                 card.className = 'p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2';
@@ -2035,6 +2070,8 @@
                 status.textContent = 'Balance in good standing';
                 status.className = 'text-xs font-medium text-emerald-600 dark:text-emerald-400';
             }
+
+            updateHolidaySimulatorBadges();
         }
 
         function toggleCalendarDate(dateISO) {
@@ -2044,8 +2081,8 @@
 
             let used = Number(document.getElementById('input-used-leaves').value) || 0;
 
-            if (previous) used = Math.max(0, used - 1);
-            if (next) used += 1;
+            if (previous === 'annual') used = Math.max(0, used - 1);
+            if (next === 'annual') used += 1;
 
             if (next) {
                 selections[dateISO] = next;
@@ -2055,12 +2092,7 @@
 
             saveLeaveCalendarSelections(selections);
             document.getElementById('input-used-leaves').value = used;
-
-            if (calendarMarkMode === 'annual') {
-                storage.setItem(`annual_leave_used_${selectedCalendarYear}`, used);
-            } else {
-                storage.setItem(`bank_holiday_used_${selectedCalendarYear}`, used);
-            }
+            storage.setItem(`annual_leave_used_${selectedCalendarYear}`, used);
 
             calculateRemainingLeaves();
             renderDynamicCalendar();
@@ -2073,73 +2105,126 @@
 
             document.getElementById('calendar-year-input').value = selectedCalendarYear;
 
-            const heading = document.getElementById('simulator-heading');
-            const subheading = document.getElementById('simulator-subheading');
-            const label1 = document.getElementById('label-card-1');
-            const sub1 = document.getElementById('label-card-1-sub');
-            const label2 = document.getElementById('label-card-2');
-            const label3 = document.getElementById('label-card-3');
-            const unit3 = document.getElementById('label-card-3-unit');
+            const totalKey = `annual_leave_total_${selectedCalendarYear}`;
+            const usedKey = `annual_leave_used_${selectedCalendarYear}`;
 
-            const selections = getLeaveCalendarSelections();
-            const prefix = `${selectedCalendarYear}-`;
+            const total = storage.getItem(totalKey);
+            const used = storage.getItem(usedKey);
 
-            if (calendarMarkMode === 'annual') {
-                heading.textContent = 'Annual Leave Hour Simulator';
-                subheading.textContent = 'Click calendar dates to mark your annual leave.';
-                label1.textContent = '1. Total Annual Leaves';
-                sub1.textContent = 'Annual entitlement';
-                label2.textContent = '2. Days Used';
-                label3.textContent = '3. Remaining Leaves';
-                unit3.textContent = 'Annual Days';
+            document.getElementById('input-total-leaves').value = total ?? 26;
 
-                const totalKey = `annual_leave_total_${selectedCalendarYear}`;
-                const usedKey = `annual_leave_used_${selectedCalendarYear}`;
+            if (total === null) storage.setItem(totalKey, 26);
 
-                const total = storage.getItem(totalKey);
-                const used = storage.getItem(usedKey);
+            if (used === null) {
+                const selections = getLeaveCalendarSelections();
+                const prefix = `${selectedCalendarYear}-`;
 
-                document.getElementById('input-total-leaves').value = total ?? 26;
-                if (total === null) storage.setItem(totalKey, 26);
+                const count = Object.keys(selections).filter(date =>
+                    date.startsWith(prefix) && selections[date] === 'annual'
+                ).length;
 
-                if (used === null) {
-                    const count = Object.keys(selections).filter(date =>
-                        date.startsWith(prefix) && selections[date] === 'annual'
-                    ).length;
-                    document.getElementById('input-used-leaves').value = count;
-                    storage.setItem(usedKey, count);
-                } else {
-                    document.getElementById('input-used-leaves').value = used;
-                }
+                document.getElementById('input-used-leaves').value = count;
+                storage.setItem(usedKey, count);
             } else {
-                heading.textContent = 'Bank Holiday (In-Lieu) Simulator';
-                subheading.textContent = 'Click calendar dates to mark your bank holiday in-lieu usage.';
-                label1.textContent = '1. Total In-Lieu';
-                sub1.textContent = 'Earned bank holidays';
-                label2.textContent = '2. Days Used';
-                label3.textContent = '3. Days Remaining';
-                unit3.textContent = 'In-Lieu Days';
-
-                // Total in-lieu is derived from saved records count, or can be overridden
-                const holidays = readJSON('bank_holiday_records', []);
-                const totalInLieu = holidays.length;
-                document.getElementById('input-total-leaves').value = totalInLieu;
-
-                const usedKey = `bank_holiday_used_${selectedCalendarYear}`;
-                const used = storage.getItem(usedKey);
-
-                if (used === null) {
-                    const count = Object.keys(selections).filter(date =>
-                        date.startsWith(prefix) && selections[date] === 'holiday'
-                    ).length;
-                    document.getElementById('input-used-leaves').value = count;
-                    storage.setItem(usedKey, count);
-                } else {
-                    document.getElementById('input-used-leaves').value = used;
-                }
+                document.getElementById('input-used-leaves').value = used;
             }
 
             calculateRemainingLeaves();
+        }
+
+        // -------------------------------------------------------------
+        // BANK HOLIDAY DRAG & DROP
+        // -------------------------------------------------------------
+        function handleItemDragStart(event, id, name) {
+            event.dataTransfer.setData('text/plain', JSON.stringify({
+                type: 'bank_holiday',
+                id,
+                name
+            }));
+            event.dataTransfer.effectAllowed = 'copyMove';
+        }
+
+        function handleTokenDragStart(event) {
+            event.dataTransfer.setData('text/plain', JSON.stringify({
+                type: 'bank_holiday',
+                name: 'Bank Holiday'
+            }));
+            event.dataTransfer.effectAllowed = 'copyMove';
+        }
+
+        function handleDayDragOver(event) {
+            if (Array.from(event.dataTransfer.types || []).includes('Files')) return;
+
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDayDragLeave(event) {
+            event.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDayDrop(event, dateISO) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+
+            if (event.dataTransfer.files?.length) {
+                showToast('Drop calendar files onto the holiday import panel above.', 'info');
+                return;
+            }
+
+            try {
+                const raw = event.dataTransfer.getData('text/plain');
+                if (!raw) return;
+
+                const data = JSON.parse(raw);
+                if (data.type !== 'bank_holiday') return;
+
+                const selections = getLeaveCalendarSelections();
+                let used = Number(document.getElementById('input-used-leaves').value) || 0;
+
+                if (selections[dateISO] === 'annual') {
+                    used = Math.max(0, used - 1);
+                }
+
+                selections[dateISO] = 'holiday';
+                saveLeaveCalendarSelections(selections);
+
+                document.getElementById('input-used-leaves').value = used;
+                storage.setItem(`annual_leave_used_${selectedCalendarYear}`, used);
+
+                calculateRemainingLeaves();
+                renderDynamicCalendar();
+
+                showToast(`Used Bank Holiday (${data.name || 'Holiday'}) on ${dateISO}.`, 'success');
+            } catch {
+                showToast('This dragged item is not a supported bank holiday token.', 'error');
+            }
+        }
+
+        function updateHolidaySimulatorBadges() {
+            const holidays = readJSON('bank_holiday_records', []);
+            const selections = getLeaveCalendarSelections();
+            const prefix = `${selectedCalendarYear}-`;
+
+            const used = Object.keys(selections).filter(date =>
+                date.startsWith(prefix) && selections[date] === 'holiday'
+            ).length;
+
+            const remaining = holidays.length - used;
+
+            document.getElementById('badge-total-holidays').textContent =
+                `+${holidays.length} Bank Holidays Available`;
+
+            document.getElementById('badge-used-holidays').textContent =
+                `${used} Bank Holidays Claimed`;
+
+            const badge = document.getElementById('badge-remaining-holidays');
+            badge.textContent = `${remaining} Bank Holidays Left`;
+
+            badge.className = remaining < 0
+                ? 'text-xs font-bold px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300'
+                : 'text-xs font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300';
         }
 
         // -------------------------------------------------------------
@@ -2189,24 +2274,17 @@
 
         function clearSelectedDaysOfYear() {
             const year = selectedCalendarYear;
-            const modeName = calendarMarkMode === 'annual' ? 'annual leave' : 'bank holiday';
 
-            openConfirm(`Reset all marked ${modeName} calendar days for ${year}?`, () => {
+            openConfirm(`Reset all marked calendar leave and used days for ${year}?`, () => {
                 const selections = getLeaveCalendarSelections();
                 const prefix = `${year}-`;
 
                 Object.keys(selections).forEach(date => {
-                    if (date.startsWith(prefix) && selections[date] === calendarMarkMode) {
-                        delete selections[date];
-                    }
+                    if (date.startsWith(prefix)) delete selections[date];
                 });
 
                 saveLeaveCalendarSelections(selections);
-                if (calendarMarkMode === 'annual') {
-                    storage.setItem(`annual_leave_used_${year}`, 0);
-                } else {
-                    storage.setItem(`bank_holiday_used_${year}`, 0);
-                }
+                storage.setItem(`annual_leave_used_${year}`, 0);
 
                 if (selectedCalendarYear === year) {
                     document.getElementById('input-used-leaves').value = 0;
@@ -2307,6 +2385,9 @@
                     button.setAttribute('aria-pressed', mark ? 'true' : 'false');
 
                     button.addEventListener('click', () => toggleCalendarDate(dateISO));
+                    button.addEventListener('dragover', handleDayDragOver);
+                    button.addEventListener('dragleave', handleDayDragLeave);
+                    button.addEventListener('drop', event => handleDayDrop(event, dateISO));
 
                     if (mark) {
                         const dot = document.createElement('span');
@@ -2366,6 +2447,7 @@
                 document.getElementById('storage-notice').classList.remove('hidden');
             }
 
+            // Set initial active state correctly for the swapped tabs
             document.getElementById('tab-holiday').className = 'px-4 py-2 text-sm font-semibold rounded-xl bg-brand-600 text-white transition';
             document.getElementById('tab-flexi').className = 'px-4 py-2 text-sm font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition';
             document.getElementById('view-holiday').classList.remove('hidden');
